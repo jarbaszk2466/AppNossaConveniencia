@@ -25,23 +25,22 @@ jobs:
             libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev \
             libltdl-dev libgmp-dev libmpc-dev
           
-          # Garante a instalação do buildozer e cython correto
+          # Instalação do buildozer e cython
           pip3 install --user --upgrade "Cython<3.0" buildozer
 
       - name: Aceitar Licenças Android SDK
         run: |
+          # Garante que o diretório de licenças exista antes de tentar aceitá-las
           mkdir -p $HOME/.android
           touch $HOME/.android/repositories.cfg
-          # O caminho do sdkmanager pode variar, usamos o do buildozer após o primeiro init ou via sistema
-          # Esta linha tenta forçar o aceite das licenças necessárias para o Gradle
           yes | sdkmanager --licenses || true
 
       - name: Fabricar APK
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          # Limpa builds anteriores que podem estar corrompidos no cache do Runner
-          buildozer android clean
-          # Executa o build em modo debug
+          # O comando '|| true' evita que o erro "No such file or directory" pare a build
+          buildozer android clean || true
+          # Inicia a geração do APK
           yes | buildozer android debug
 
       - name: Upload do Arquivo
