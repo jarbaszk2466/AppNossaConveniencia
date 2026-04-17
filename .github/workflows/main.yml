@@ -1,0 +1,52 @@
+name: Gerar APK Final
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Instalar Dependencias do Sistema
+        run: |
+          sudo apt update
+          sudo apt install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev \
+            libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev \
+            libltdl-dev libgmp-dev libmpc-dev
+          
+          # Garante a instalação do buildozer e cython correto
+          pip3 install --user --upgrade "Cython<3.0" buildozer
+
+      - name: Aceitar Licenças Android SDK
+        run: |
+          mkdir -p $HOME/.android
+          touch $HOME/.android/repositories.cfg
+          # O caminho do sdkmanager pode variar, usamos o do buildozer após o primeiro init ou via sistema
+          # Esta linha tenta forçar o aceite das licenças necessárias para o Gradle
+          yes | sdkmanager --licenses || true
+
+      - name: Fabricar APK
+        run: |
+          export PATH=$PATH:$HOME/.local/bin
+          # Limpa builds anteriores que podem estar corrompidos no cache do Runner
+          buildozer android clean
+          # Executa o build em modo debug
+          yes | buildozer android debug
+
+      - name: Upload do Arquivo
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: App_Nossa_Conveniencia
+          path: bin/*.apk
